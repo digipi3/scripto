@@ -1,0 +1,6 @@
+C:\Users\mark\Desktop\Backup App\Scripto\Scripto\bin\Debug\Scripto.exe.config
+C:\Users\mark\Desktop\Backup App\Scripto\Scripto\bin\Debug\Scripto.exe
+C:\Users\mark\Desktop\Backup App\Scripto\Scripto\bin\Debug\Scripto.pdb
+C:\Users\mark\Desktop\Backup App\Scripto\Scripto\obj\Debug\Scripto.csprojResolveAssemblyReference.cache
+C:\Users\mark\Desktop\Backup App\Scripto\Scripto\obj\Debug\Scripto.exe
+C:\Users\mark\Desktop\Backup App\Scripto\Scripto\obj\Debug\Scripto.pdb
