@@ -1,6 +1,7 @@
 ﻿#define TESTING
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
@@ -11,6 +12,8 @@ namespace Scripto
 {
     class Program
     {
+        static StreamWriter log = new StreamWriter("log.txt", true);
+
         static void Main(string[] args)
         {
 #if TESTING
@@ -19,17 +22,17 @@ namespace Scripto
             args[1] = "C:\\des\\";
 #endif
 
-            if ( args.Length < 2)
+            if (args.Length < 2)
             {
                 return;
             }
 
-            if( args[0] == null)
+            if (args[0] == null)
             {
                 return;
             }
 
-            if( args[1] == null )
+            if (args[1] == null)
             {
                 return;
             }
@@ -43,7 +46,7 @@ namespace Scripto
             int index = 0;
             System.Collections.ArrayList directoriesThatShouldExist = new System.Collections.ArrayList();
 
-            for ( int i = 0; i < sourceDirectories.Count; i++ )
+            for (int i = 0; i < sourceDirectories.Count; i++)
             {
                 index = sourceDirectories[i].IndexOf(sourceDir);
 
@@ -57,25 +60,91 @@ namespace Scripto
             // Okay so now we have all the directories that should exist in the back up.
             // If they don't then they need to be created and files should be copied over.
 
-            string backUp= "";
+            string backUp = "";
             string src = "";
 
-            for( int i = 0; i < directoriesThatShouldExist.Count; i++ )
+            for (int i = 0; i < directoriesThatShouldExist.Count; i++)
             {
-                backUp = (string ) directoriesThatShouldExist[i];
+                backUp = (string)directoriesThatShouldExist[i];
 
-                if( ! System.IO.Directory.Exists(backUp) )
+                if (!System.IO.Directory.Exists(backUp))
                 {
                     System.IO.Directory.CreateDirectory(backUp);
 
                     // This is a new directory so all the files will be new.
                     // Copy time.
-
                     src = sourceDirectories[i];
-
                     DirectoryCopy(src, backUp, true);
+                    log.WriteLine("Directory and Files Created: \t\t " + backUp);
                 }
-            } 
+            }
+
+            // All new directories and files are done.
+            // Well ish, what about new file in the root?
+
+            // TODO
+
+            // Get all the files in the source directory:
+            string[] allSourceFiles = System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories);
+
+            // Copy new files that don't exist in the back-up because we've only copied new 
+            // files that are in new directories.
+            string sourceFilePath = "";
+            string backUpFilePath = "";
+
+            for (int i = 0; i < allSourceFiles.Length; i++)
+            {
+                sourceFilePath = allSourceFiles[i];
+                backUpFilePath = ConvertSourcePathToBackUpPath(sourceFilePath, sourceDir, backUpDir);
+
+                if (!File.Exists(backUpFilePath))
+                {
+                    File.Copy(sourceFilePath, backUpFilePath);
+                    log.WriteLine("File Copied:\t\t" + backUpFilePath);
+                }
+            }
+
+            // Now to check for files that have been modified more recently.
+
+            ArrayList filesToCopy = new ArrayList();
+
+            for (int i = 0; i < allSourceFiles.Length; i++)
+            {
+                sourceFilePath = allSourceFiles[i];
+                backUpFilePath = ConvertSourcePathToBackUpPath(sourceFilePath, sourceDir, backUpDir);
+
+                System.IO.FileInfo sourceFile = new System.IO.FileInfo(sourceFilePath);
+                System.IO.FileInfo backUpFile = new System.IO.FileInfo(backUpFilePath);
+
+                if (sourceFile.LastWriteTime > backUpFile.LastWriteTime)
+                {
+                    filesToCopy.Add(sourceFilePath + "," + backUpFilePath);
+
+                    try
+                    {
+                        File.Copy(sourceFilePath, backUpFilePath, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        log.WriteLine("Failed To Copy: \t\t" + sourceFilePath + "to \t\t" + backUpFilePath);
+                        log.Close();
+                        return;
+                    }
+                }
+            }
+
+            log.Close();
+        }
+
+        private static string ConvertSourcePathToBackUpPath(string srcPath, string srcDir, string backUpDir)
+        {
+            int index = srcPath.IndexOf(srcDir);
+
+            string backupPath = srcPath.Remove(index, srcDir.Length);
+
+            backupPath = backUpDir + backupPath;
+
+            return backupPath;
         }
 
 
@@ -93,7 +162,7 @@ namespace Scripto
         }
 
         private static List<string> GetAllTheDirectories(string path)
-        {            
+        {
             var directories = new List<string>(GetDirectories(path));
 
             for (var i = 0; i < directories.Count; i++)
