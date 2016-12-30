@@ -12,14 +12,15 @@ namespace Scripto
 {
     class Program
     {
-        static StreamWriter log = new StreamWriter("log.txt", true);
+        static StreamWriter Log = new StreamWriter("log.txt", true);
 
         static void Main(string[] args)
         {
 #if TESTING
-            args = new string[2];
+            args = new string[3];
             args[0] = "C:\\src\\";
             args[1] = "C:\\des\\";
+            args[2] = "C:\\scriptoignore.txt";
 #endif
 
             if (args.Length < 2)
@@ -35,6 +36,21 @@ namespace Scripto
             if (args[1] == null)
             {
                 return;
+            }
+
+            string[] filesToIgnore = null;
+
+            if( args[2] != null )
+            {
+                try
+                {
+                    filesToIgnore = ExtractDirectoriesToIgnore(args[2]);
+                }
+                catch( Exception ex )
+                {
+                    Log.WriteLine("Error opening ignore file" + ex.ToString());
+                }
+
             }
 
             String sourceDir = args[0];
@@ -75,7 +91,7 @@ namespace Scripto
                     // Copy time.
                     src = sourceDirectories[i];
                     DirectoryCopy(src, backUp, true);
-                    log.WriteLine("Directory and Files Created: \t\t " + backUp);
+                    Log.WriteLine("Directory and Files Created: \t\t " + backUp);
                 }
             }
 
@@ -100,7 +116,7 @@ namespace Scripto
                 if (!File.Exists(backUpFilePath))
                 {
                     File.Copy(sourceFilePath, backUpFilePath);
-                    log.WriteLine("File Copied:\t\t" + backUpFilePath);
+                    Log.WriteLine("File Copied:\t\t" + backUpFilePath);
                 }
             }
 
@@ -126,14 +142,35 @@ namespace Scripto
                     }
                     catch (Exception ex)
                     {
-                        log.WriteLine("Failed To Copy: \t\t" + sourceFilePath + "to \t\t" + backUpFilePath);
-                        log.Close();
+                        Log.WriteLine("Failed To Copy: \t\t" + sourceFilePath + "to \t\t" + backUpFilePath);
+                        Log.Close();
                         return;
                     }
                 }
             }
 
-            log.Close();
+            Log.Close();
+        }
+
+        private static string[] ExtractDirectoriesToIgnore( string ignoreFilePath )
+        {
+            if( ignoreFilePath == null)
+            {
+                return null;
+            }
+
+            string[] lines = null;
+
+            try
+            {
+                lines = System.IO.File.ReadAllLines(ignoreFilePath);
+            }
+            catch
+            {
+                throw;
+            }
+
+            return lines;
         }
 
         private static string ConvertSourcePathToBackUpPath(string srcPath, string srcDir, string backUpDir)
