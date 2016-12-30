@@ -38,13 +38,13 @@ namespace Scripto
                 return;
             }
 
-            string[] filesToIgnore = null;
+            string[] directoriesToIgnore = null;
 
             if( args[2] != null )
             {
                 try
                 {
-                    filesToIgnore = ExtractDirectoriesToIgnore(args[2]);
+                    directoriesToIgnore = ExtractDirectoriesToIgnore(args[2]);
                 }
                 catch( Exception ex )
                 {
@@ -58,6 +58,11 @@ namespace Scripto
 
             List<string> sourceDirectories = GetAllTheDirectories(sourceDir);
 
+            if (directoriesToIgnore != null && directoriesToIgnore.Length > 0)
+            {
+                sourceDirectories = RemoveStringsFromStringist(sourceDirectories, directoriesToIgnore);
+            }
+
             // Do all the directories in the source match the directories in the backup?
             int index = 0;
             System.Collections.ArrayList directoriesThatShouldExist = new System.Collections.ArrayList();
@@ -65,6 +70,11 @@ namespace Scripto
             for (int i = 0; i < sourceDirectories.Count; i++)
             {
                 index = sourceDirectories[i].IndexOf(sourceDir);
+
+                if( index == -1)
+                {
+                    continue;
+                }
 
                 string directory = sourceDirectories[i].Remove(index, backUpDir.Length);
 
@@ -150,6 +160,26 @@ namespace Scripto
             }
 
             Log.Close();
+        }
+
+        private static List<string> RemoveStringsFromStringist( List<string> stringList, string[] stringsToRemove)
+        {
+            // At this point we can remove the source directories that are to be ignored.
+
+            List<string> newList = new List<string>();
+
+            for (int i = 0; i < stringList.Count; i++)
+            {
+                for (int j = 0; j < stringsToRemove.Length; j++)
+                {
+                    if (stringList[i] != stringsToRemove[j])
+                    {
+                        newList.Add(stringList[i]);
+                    }
+                }
+            }
+
+            return newList;
         }
 
         private static string[] ExtractDirectoriesToIgnore( string ignoreFilePath )
