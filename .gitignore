@@ -1,0 +1,9 @@
+# Ignore stuff here
+
+# Ignore everything
+*
+
+# But not these files...
+!.gitignore
+!Program.cs
+# etc...
