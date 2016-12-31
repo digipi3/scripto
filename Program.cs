@@ -60,6 +60,7 @@ namespace Scripto
 
             }
 
+
             String sourceDir = args[0];
             String backUpDir = args[1];
 
@@ -81,8 +82,11 @@ namespace Scripto
             // Next the directories that don't exist in back-up need to be created and their files copied?!
             CreateDirectoriesAndCopyFiles(sourceDirectories, directoriesThatShouldExist);
 
-            // Copy all new files:
-            CopyNewFiles(sourceDir, backUpDir);
+            // Copy all new files           
+            // Get all the files in the source directory:          
+
+            //CopyNewFiles(sourceDir, backUpDir);
+            CopyNewFilesToBackup(sourceDir, backUpDir, directoriesToIgnore.ToList<string>() );
 
             // Copy Files that have been modified more recently:
             CopyModifiedFiles(sourceDir, backUpDir);
@@ -120,6 +124,52 @@ namespace Scripto
                         LogMessage("Failed To Copy: \t\t" + sourceFilePath + "to \t\t" + backUpFilePath);
                         continue;
                     }
+                }
+            }
+        }
+
+        private static List<string> RemoveFilesFromExemptDirectories( List<string> files, List<string> exemptList )
+        {
+            ArrayList newFiles = new ArrayList();
+
+            for( int i = 0; i < files.Count; i++ )
+            {
+                for (int j = 0; j < exemptList.Count; j++)
+                {
+                    if (files[i].Contains( exemptList[j] ) == false)
+                    {
+                        newFiles.Add(files[i]);
+                    }
+                }
+            }
+
+            List<string> filesCleaned = new List<string>();
+
+            filesCleaned = newFiles.Cast<string>().ToList();
+
+            return filesCleaned;
+        }
+
+        private static void CopyNewFilesToBackup( string sourceDir, string backUpDir, List<string> exemptList )
+        {
+            List<string> allSourceFiles = System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories).ToList<string>();
+
+            allSourceFiles = RemoveFilesFromExemptDirectories(allSourceFiles, exemptList);
+
+            // Copy new files that don't exist in the back-up because we've only copied new 
+            // files that are in new directories.
+            string sourceFilePath = "";
+            string backUpFilePath = "";
+
+            for (int i = 0; i < allSourceFiles.Count; i++)
+            {
+                sourceFilePath = allSourceFiles[i];
+                backUpFilePath = ConvertSourcePathToBackUpPath(sourceFilePath, sourceDir, backUpDir);
+
+                if (!File.Exists(backUpFilePath))
+                {
+                    File.Copy(sourceFilePath, backUpFilePath);
+                    LogMessage("File Copied:\t\t" + backUpFilePath);
                 }
             }
         }
