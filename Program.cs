@@ -89,7 +89,8 @@ namespace Scripto
             CopyNewFilesToBackup(sourceDir, backUpDir, directoriesToIgnore.ToList<string>() );
 
             // Copy Files that have been modified more recently:
-            CopyModifiedFiles(sourceDir, backUpDir);
+            //CopyModifiedFiles(sourceDir, backUpDir);
+            CopyModifiedFiles(sourceDir, backUpDir, directoriesToIgnore.ToList<string>());
 
             Log.Close();
         }
@@ -128,15 +129,52 @@ namespace Scripto
             }
         }
 
-        private static List<string> RemoveFilesFromExemptDirectories( List<string> files, List<string> exemptList )
+        private static void CopyModifiedFiles(string sourceDir, string backUpDir, List<string> ignoreList )
+        {
+            string sourceFilePath = "";
+            string backUpFilePath = "";
+
+            // Now to check for files that have been modified more recently.
+            //string[] sourceFiles = System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories);
+            ArrayList filesToCopy = new ArrayList();
+
+            List<string> sourceFiles = System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories).ToList<string>();
+            sourceFiles = RemoveFilesInIgnoreList(sourceFiles, ignoreList);
+
+            for (int i = 0; i < sourceFiles.Count; i++)
+            {
+                sourceFilePath = sourceFiles[i];
+                backUpFilePath = ConvertSourcePathToBackUpPath(sourceFilePath, sourceDir, backUpDir);
+
+                System.IO.FileInfo sourceFile = new System.IO.FileInfo(sourceFilePath);
+                System.IO.FileInfo backUpFile = new System.IO.FileInfo(backUpFilePath);
+
+                if (sourceFile.LastWriteTime > backUpFile.LastWriteTime)
+                {
+                    filesToCopy.Add(sourceFilePath + "," + backUpFilePath);
+
+                    try
+                    {
+                        File.Copy(sourceFilePath, backUpFilePath, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogMessage("Failed To Copy: \t\t" + sourceFilePath + "to \t\t" + backUpFilePath);
+                        continue;
+                    }
+                }
+            }
+        }
+
+        private static List<string> RemoveFilesInIgnoreList( List<string> files, List<string> ignoreList )
         {
             ArrayList newFiles = new ArrayList();
 
             for( int i = 0; i < files.Count; i++ )
             {
-                for (int j = 0; j < exemptList.Count; j++)
+                for (int j = 0; j < ignoreList.Count; j++)
                 {
-                    if (files[i].Contains( exemptList[j] ) == false)
+                    if (files[i].Contains(ignoreList[j] ) == false)
                     {
                         newFiles.Add(files[i]);
                     }
@@ -150,11 +188,11 @@ namespace Scripto
             return filesCleaned;
         }
 
-        private static void CopyNewFilesToBackup( string sourceDir, string backUpDir, List<string> exemptList )
+        private static void CopyNewFilesToBackup( string sourceDir, string backUpDir, List<string> ignoreList )
         {
             List<string> allSourceFiles = System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories).ToList<string>();
 
-            allSourceFiles = RemoveFilesFromExemptDirectories(allSourceFiles, exemptList);
+            allSourceFiles = RemoveFilesInIgnoreList(allSourceFiles, ignoreList);
 
             // Copy new files that don't exist in the back-up because we've only copied new 
             // files that are in new directories.
