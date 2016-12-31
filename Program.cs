@@ -10,6 +10,11 @@ using System.Threading.Tasks;
 
 namespace Scripto
 {
+    /* Important notes:
+     * 
+     * Directories are dealth with in the following format:
+     * C:\\Movies and not C:\\Movies\\ so the last slash will be removed.
+     */
     class Program
     {
         static StreamWriter Log = new StreamWriter("log.txt", true);
@@ -18,8 +23,8 @@ namespace Scripto
         {
 #if TESTING
             args = new string[3];
-            args[0] = "C:\\src\\";
-            args[1] = "C:\\des\\";
+            args[0] = "C:\\src";
+            args[1] = "C:\\des";
             args[2] = "C:\\scriptoignore.txt";
 #endif
 
@@ -178,7 +183,6 @@ namespace Scripto
                     }
                 }
             }
-
             return newList;
         }
 
@@ -194,6 +198,8 @@ namespace Scripto
             try
             {
                 lines = System.IO.File.ReadAllLines(ignoreFilePath);
+
+                RemoveAnyLastSlashes( ref lines );
             }
             catch
             {
@@ -201,6 +207,33 @@ namespace Scripto
             }
 
             return lines;
+        }
+
+        private static void RemoveAnyLastSlashes(ref string[] listOfDirectories)
+        {
+            if( listOfDirectories == null )
+            {
+                return;
+            }
+
+            string line;
+            int indexSlash;
+            char slash = '\\';
+
+            // Strip that last slash.
+            for (int i = 0; i < listOfDirectories.Length; i++)
+            {
+                line = listOfDirectories[i];
+                indexSlash = line.LastIndexOf(slash);
+
+                if (indexSlash > 0)
+                {
+                    if ( ( line.Length - 1) == indexSlash)
+                    {
+                        listOfDirectories[i] = line.Remove(indexSlash);
+                    }
+                }
+            }
         }
 
         private static string ConvertSourcePathToBackUpPath(string srcPath, string srcDir, string backUpDir)
@@ -213,8 +246,6 @@ namespace Scripto
 
             return backupPath;
         }
-
-
 
         private static List<string> GetDirectories(string path)
         {
