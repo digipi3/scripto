@@ -66,7 +66,6 @@ namespace Scripto
             LogMessage("Backup is about to begin");
 
             // Get all the directories in the source directory
-
             List<string> sourceDirectories = GetAllTheDirectories(sourceDir);
 
             // Ignore any directories that have been specified by the user
@@ -82,35 +81,27 @@ namespace Scripto
             // Next the directories that don't exist in back-up need to be created and their files copied?!
             CreateDirectoriesAndCopyFiles(sourceDirectories, directoriesThatShouldExist);
 
-            // All new directories and files are done.
+            // Copy all new files:
+            CopyNewFiles(sourceDir, backUpDir);
 
-            // Get all the files in the source directory:
-            string[] allSourceFiles = System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories);
+            // Copy Files that have been modified more recently:
+            CopyModifiedFiles(sourceDir, backUpDir);
 
-            // Copy new files that don't exist in the back-up because we've only copied new 
-            // files that are in new directories.
+            Log.Close();
+        }
+
+        private static void CopyModifiedFiles(string sourceDir, string backUpDir)
+        {
             string sourceFilePath = "";
             string backUpFilePath = "";
 
-            for (int i = 0; i < allSourceFiles.Length; i++)
-            {
-                sourceFilePath = allSourceFiles[i];
-                backUpFilePath = ConvertSourcePathToBackUpPath(sourceFilePath, sourceDir, backUpDir);
-
-                if (!File.Exists(backUpFilePath))
-                {
-                    File.Copy(sourceFilePath, backUpFilePath);
-                    LogMessage("File Copied:\t\t" + backUpFilePath);
-                }
-            }
-
             // Now to check for files that have been modified more recently.
-
+            string[] sourceFiles = System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories);
             ArrayList filesToCopy = new ArrayList();
 
-            for (int i = 0; i < allSourceFiles.Length; i++)
+            for (int i = 0; i < sourceFiles.Length; i++)
             {
-                sourceFilePath = allSourceFiles[i];
+                sourceFilePath = sourceFiles[i];
                 backUpFilePath = ConvertSourcePathToBackUpPath(sourceFilePath, sourceDir, backUpDir);
 
                 System.IO.FileInfo sourceFile = new System.IO.FileInfo(sourceFilePath);
@@ -131,8 +122,29 @@ namespace Scripto
                     }
                 }
             }
+        }
 
-            Log.Close();
+        private static void CopyNewFiles( string sourceDir, string backUpDir )
+        {
+            // Get all the files in the source directory:
+            string[] allSourceFiles = System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories);
+
+            // Copy new files that don't exist in the back-up because we've only copied new 
+            // files that are in new directories.
+            string sourceFilePath = "";
+            string backUpFilePath = "";
+
+            for (int i = 0; i < allSourceFiles.Length; i++)
+            {
+                sourceFilePath = allSourceFiles[i];
+                backUpFilePath = ConvertSourcePathToBackUpPath(sourceFilePath, sourceDir, backUpDir);
+
+                if (!File.Exists(backUpFilePath))
+                {
+                    File.Copy(sourceFilePath, backUpFilePath);
+                    LogMessage("File Copied:\t\t" + backUpFilePath);
+                }
+            }
         }
 
         private static void CreateDirectoriesAndCopyFiles( List<string> srcDir, List<string> backUpDir )
