@@ -65,32 +65,25 @@ namespace Scripto
 
             LogMessage("Backup is about to begin");
 
+            // Get all the directories in the source directory
+
             List<string> sourceDirectories = GetAllTheDirectories(sourceDir);
+
+            // Ignore any directories that have been specified by the user
 
             if (directoriesToIgnore != null && directoriesToIgnore.Length > 0)
             {
                 sourceDirectories = RemoveStringsFromStringist(sourceDirectories, directoriesToIgnore);
             }
 
+            // Generate backup directory paths using the source paths
+
+            List<string> directoriesThatShouldExist = GenerateBackupDirFromSourceDir(sourceDirectories, sourceDir, backUpDir);
+
+
+
             // Do all the directories in the source match the directories in the backup?
-            int index = 0;
-            System.Collections.ArrayList directoriesThatShouldExist = new System.Collections.ArrayList();
 
-            for (int i = 0; i < sourceDirectories.Count; i++)
-            {
-                index = sourceDirectories[i].IndexOf(sourceDir);
-
-                if( index == -1)
-                {
-                    continue;
-                }
-
-                string directory = sourceDirectories[i].Remove(index, backUpDir.Length);
-
-                string directoryInBackup = backUpDir + directory;
-
-                directoriesThatShouldExist.Add(directoryInBackup);
-            }
 
             // Okay so now we have all the directories that should exist in the back up.
             // If they don't then they need to be created and files should be copied over.
@@ -100,7 +93,7 @@ namespace Scripto
 
             for (int i = 0; i < directoriesThatShouldExist.Count; i++)
             {
-                backUp = (string)directoriesThatShouldExist[i];
+                backUp = directoriesThatShouldExist[i];
 
                 if (!System.IO.Directory.Exists(backUp))
                 {
@@ -168,6 +161,30 @@ namespace Scripto
             }
 
             Log.Close();
+        }
+
+        private static List<string> GenerateBackupDirFromSourceDir(List<string> sourceDirectories, string sourceDir, string backUpDir )
+        {
+            int index = 0;
+            System.Collections.ArrayList directoriesThatShouldExist = new System.Collections.ArrayList();
+
+            for (int i = 0; i < sourceDirectories.Count; i++)
+            {
+                index = sourceDirectories[i].IndexOf(sourceDir);
+
+                if (index == -1)
+                {
+                    continue;
+                }
+
+                string directory = sourceDirectories[i].Remove(index, backUpDir.Length);
+
+                string directoryInBackup = backUpDir + directory;
+
+                directoriesThatShouldExist.Add(directoryInBackup);
+            }
+
+            return directoriesThatShouldExist.Cast<string>().ToList();
         }
 
         private static List<string> RemoveStringsFromStringist( List<string> stringList, string[] stringsToRemove)
