@@ -77,40 +77,12 @@ namespace Scripto
             }
 
             // Generate backup directory paths using the source paths
-
             List<string> directoriesThatShouldExist = GenerateBackupDirFromSourceDir(sourceDirectories, sourceDir, backUpDir);
 
-
-
-            // Do all the directories in the source match the directories in the backup?
-
-
-            // Okay so now we have all the directories that should exist in the back up.
-            // If they don't then they need to be created and files should be copied over.
-
-            string backUp = "";
-            string src = "";
-
-            for (int i = 0; i < directoriesThatShouldExist.Count; i++)
-            {
-                backUp = directoriesThatShouldExist[i];
-
-                if (!System.IO.Directory.Exists(backUp))
-                {
-                    System.IO.Directory.CreateDirectory(backUp);
-
-                    // This is a new directory so all the files will be new.
-                    // Copy time.
-                    src = sourceDirectories[i];
-                    DirectoryCopy(src, backUp, true);
-                    LogMessage("Directory and Files Created: \t\t " + backUp);
-                }
-            }
+            // Next the directories that don't exist in back-up need to be created and their files copied?!
+            CreateDirectoriesAndCopyFiles(sourceDirectories, directoriesThatShouldExist);
 
             // All new directories and files are done.
-            // Well ish, what about new file in the root?
-
-            // TODO
 
             // Get all the files in the source directory:
             string[] allSourceFiles = System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories);
@@ -161,6 +133,28 @@ namespace Scripto
             }
 
             Log.Close();
+        }
+
+        private static void CreateDirectoriesAndCopyFiles( List<string> srcDir, List<string> backUpDir )
+        {
+            string backUp = "";
+            string src = "";
+
+            for (int i = 0; i < backUpDir.Count; i++)
+            {
+                backUp = backUpDir[i];
+
+                if (!System.IO.Directory.Exists(backUp))
+                {
+                    System.IO.Directory.CreateDirectory(backUp);
+
+                    // This is a new directory so all the files will be new.
+                    // Copy time.
+                    src = srcDir[i];
+                    DirectoryCopy(src, backUp, true);
+                    LogMessage("Directory and Files Created: \t\t " + backUp);
+                }
+            }
         }
 
         private static List<string> GenerateBackupDirFromSourceDir(List<string> sourceDirectories, string sourceDir, string backUpDir )
