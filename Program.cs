@@ -43,7 +43,7 @@ namespace Scripto
                 return;
             }
 
-            string[] directoriesToIgnore = null;
+            List<string> directoriesToIgnore = null;
 
             if( args[2] != null )
             {
@@ -71,7 +71,7 @@ namespace Scripto
 
             // Ignore any directories that have been specified by the user
 
-            if (directoriesToIgnore != null && directoriesToIgnore.Length > 0)
+            if (directoriesToIgnore != null && directoriesToIgnore.Count > 0)
             {
                 sourceDirectories = RemoveStringsFromStringist(sourceDirectories, directoriesToIgnore);
             }
@@ -281,7 +281,7 @@ namespace Scripto
             return directoriesThatShouldExist.Cast<string>().ToList();
         }
 
-        private static List<string> RemoveStringsFromStringist( List<string> stringList, string[] stringsToRemove)
+        private static List<string> RemoveStringsFromStringist( List<string> stringList, List<string> stringsToRemove)
         {
             // At this point we can remove the source directories that are to be ignored.
 
@@ -289,7 +289,7 @@ namespace Scripto
 
             for (int i = 0; i < stringList.Count; i++)
             {
-                for (int j = 0; j < stringsToRemove.Length; j++)
+                for (int j = 0; j < stringsToRemove.Count; j++)
                 {
                     if (stringList[i] != stringsToRemove[j])
                     {
@@ -300,7 +300,7 @@ namespace Scripto
             return newList;
         }
 
-        private static string[] ExtractDirectoriesToIgnore( string ignoreFilePath )
+        private static List<string> ExtractDirectoriesToIgnore( string ignoreFilePath )
         {
             if( ignoreFilePath == null)
             {
@@ -320,7 +320,7 @@ namespace Scripto
                 throw;
             }
 
-            return lines;
+            return lines.ToList<string>();
         }
 
         private static void RemoveAnyLastSlashes(ref string[] listOfDirectories)
