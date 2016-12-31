@@ -53,13 +53,17 @@ namespace Scripto
                 }
                 catch( Exception ex )
                 {
-                    Log.WriteLine("Error opening ignore file" + ex.ToString());
+                    LogMessage("Error opening ignore file" + ex.ToString());
+                    Log.Close();
+                    return;
                 }
 
             }
 
             String sourceDir = args[0];
             String backUpDir = args[1];
+
+            LogMessage("Backup is about to begin");
 
             List<string> sourceDirectories = GetAllTheDirectories(sourceDir);
 
@@ -106,7 +110,7 @@ namespace Scripto
                     // Copy time.
                     src = sourceDirectories[i];
                     DirectoryCopy(src, backUp, true);
-                    Log.WriteLine("Directory and Files Created: \t\t " + backUp);
+                    LogMessage("Directory and Files Created: \t\t " + backUp);
                 }
             }
 
@@ -131,7 +135,7 @@ namespace Scripto
                 if (!File.Exists(backUpFilePath))
                 {
                     File.Copy(sourceFilePath, backUpFilePath);
-                    Log.WriteLine("File Copied:\t\t" + backUpFilePath);
+                    LogMessage("File Copied:\t\t" + backUpFilePath);
                 }
             }
 
@@ -157,9 +161,8 @@ namespace Scripto
                     }
                     catch (Exception ex)
                     {
-                        Log.WriteLine("Failed To Copy: \t\t" + sourceFilePath + "to \t\t" + backUpFilePath);
-                        Log.Close();
-                        return;
+                        LogMessage("Failed To Copy: \t\t" + sourceFilePath + "to \t\t" + backUpFilePath);
+                        continue;
                     }
                 }
             }
@@ -307,6 +310,16 @@ namespace Scripto
                     DirectoryCopy(subdir.FullName, temppath, copySubDirs);
                 }
             }
+        }
+
+        private static void LogMessage( string message )
+        {
+            if( Log == null )
+            {
+                return;
+            }
+
+            Log.WriteLine(DateTime.UtcNow.ToShortDateString() + " " + DateTime.UtcNow.ToShortTimeString() + "\t\t" + message);
         }
     }
 }
