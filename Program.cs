@@ -62,7 +62,7 @@ namespace Scripto
             String sourceDir = args[0];
             String backUpDir = args[1];
 
-            LogMessage("Backup is about to begin");
+            LogMessage("Start the fans please");
 
             // Get all the directories in the source directory
             List<string> sourceDirectories = GetAllTheDirectories(sourceDir);
@@ -71,7 +71,7 @@ namespace Scripto
 
             if (directoriesToIgnore != null && directoriesToIgnore.Count > 0)
             {
-                sourceDirectories = RemoveStringsFromStringist(sourceDirectories, directoriesToIgnore);
+                sourceDirectories = RemoveStringsIfMatchesStringInList(sourceDirectories, directoriesToIgnore);
             }
 
             // Remove root part of the source directory from each directory path
@@ -85,7 +85,12 @@ namespace Scripto
 
             // Copy all new files
             List<string> files = System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories).ToList<string>();
+            files = RemoveStringIfContainsStringInList(files, directoriesToIgnore);
+
             List<string> paths = RemoveStringFromStringList(sourceDir, files);
+
+
+
             CopyFiles(sourceDir, backUpDir, paths);
 
             // Copy Files that have been modified more recently:
@@ -376,7 +381,7 @@ namespace Scripto
             return directoriesThatShouldExist.Cast<string>().ToList();
         }
 
-        private static List<string> RemoveStringsFromStringist( List<string> stringList, List<string> stringsToRemove)
+        private static List<string> RemoveStringsIfMatchesStringInList( List<string> stringList, List<string> stringsToRemove)
         {
             // At this point we can remove the source directories that are to be ignored.
 
@@ -387,6 +392,25 @@ namespace Scripto
                 for (int j = 0; j < stringsToRemove.Count; j++)
                 {
                     if (stringList[i] != stringsToRemove[j])
+                    {
+                        newList.Add(stringList[i]);
+                    }
+                }
+            }
+            return newList;
+        }
+
+        private static List<string> RemoveStringIfContainsStringInList(List<string> stringList, List<string> stringsToRemove)
+        {
+            // At this point we can remove the source directories that are to be ignored.
+
+            List<string> newList = new List<string>();
+
+            for (int i = 0; i < stringList.Count; i++)
+            {
+                for (int j = 0; j < stringsToRemove.Count; j++)
+                {
+                    if ( ! stringList[i].Contains( stringsToRemove[j] ) )
                     {
                         newList.Add(stringList[i]);
                     }
