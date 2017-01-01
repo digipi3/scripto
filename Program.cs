@@ -14,6 +14,7 @@ namespace Scripto
      * 
      * Directories are dealth with in the following format:
      * C:\\Movies and not C:\\Movies\\ so the last slash will be removed.
+     * 
      */
     class Program
     {
@@ -89,14 +90,66 @@ namespace Scripto
 
             List<string> paths = RemoveStringFromStringList(sourceDir, files);
 
-
-
             CopyFiles(sourceDir, backUpDir, paths);
 
             // Copy Files that have been modified more recently:
             CopyModifiedFiles(sourceDir, backUpDir, paths );
 
             Log.Close();
+        }
+
+        private static List<string> ExtractDirectoriesToIgnore(string ignoreFilePath)
+        {
+            if (ignoreFilePath == null)
+            {
+                return null;
+            }
+
+            string[] lines = null;
+
+            try
+            {
+                lines = System.IO.File.ReadAllLines(ignoreFilePath);
+
+                RemoveAnyLastSlashes(ref lines);
+            }
+            catch
+            {
+                throw;
+            }
+
+            return lines.ToList<string>();
+        }
+
+        private static List<string> GetAllTheDirectories(string path)
+        {
+            var directories = new List<string>(GetDirectories(path));
+
+            for (var i = 0; i < directories.Count; i++)
+            {
+                directories.AddRange(GetDirectories(directories[i]));
+            }
+
+            return directories;
+        }
+
+        private static List<string> RemoveStringsIfMatchesStringInList(List<string> stringList, List<string> stringsToRemove)
+        {
+            // At this point we can remove the source directories that are to be ignored.
+
+            List<string> newList = new List<string>();
+
+            for (int i = 0; i < stringList.Count; i++)
+            {
+                for (int j = 0; j < stringsToRemove.Count; j++)
+                {
+                    if (stringList[i] != stringsToRemove[j])
+                    {
+                        newList.Add(stringList[i]);
+                    }
+                }
+            }
+            return newList;
         }
 
         private static List<string> RemoveStringFromStringList( string removeString, List<string> list )
@@ -120,6 +173,178 @@ namespace Scripto
             }
             return folders;
         }
+
+        private static List<string> RemoveStringIfContainsStringInList(List<string> stringList, List<string> stringsToRemove)
+        {
+            // At this point we can remove the source directories that are to be ignored.
+
+            List<string> newList = new List<string>();
+
+            for (int i = 0; i < stringList.Count; i++)
+            {
+                for (int j = 0; j < stringsToRemove.Count; j++)
+                {
+                    if (!stringList[i].Contains(stringsToRemove[j]))
+                    {
+                        newList.Add(stringList[i]);
+                    }
+                }
+            }
+            return newList;
+        }
+
+        // here
+
+        private static void CopyFiles(string sourceDir, string backUpDir, List<string> files)
+        {
+            if (files == null || sourceDir == null || backUpDir == null)
+            {
+                return;
+            }
+
+            string sourceFilePath = "";
+            string backUpFilePath = "";
+
+            for (int i = 0; i < files.Count; i++)
+            {
+                sourceFilePath = sourceDir + files[i];
+                backUpFilePath = backUpDir + files[i];
+
+                if (!File.Exists(backUpFilePath))
+                {
+                    File.Copy(sourceFilePath, backUpFilePath);
+                    LogMessage("File Copied:\t\t" + backUpFilePath);
+                }
+            }
+        }
+
+        private static void CopyModifiedFiles(string sourceDir, string backUpDir, List<string> files)
+        {
+            string sourceFilePath = "";
+            string backUpFilePath = "";
+
+            for (int i = 0; i < files.Count; i++)
+            {
+                sourceFilePath = sourceDir + files[i];
+                backUpFilePath = backUpDir + files[i];
+
+                System.IO.FileInfo sourceFile = new System.IO.FileInfo(sourceFilePath);
+                System.IO.FileInfo backUpFile = new System.IO.FileInfo(backUpFilePath);
+
+                if (sourceFile.LastWriteTime > backUpFile.LastWriteTime)
+                {
+                    try
+                    {
+                        File.Copy(sourceFilePath, backUpFilePath, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogMessage("Failed To Copy: \t\t" + sourceFilePath + "to \t\t" + backUpFilePath);
+                        continue;
+                    }
+                }
+            }
+        }
+
+        private static void CreateDirectoriesAndCopyFiles(string sourceDirectory, string backUpDirectory, List<string> folders)
+        {
+            string bDir = "";
+            string sDir = "";
+
+            for (int i = 0; i < folders.Count; i++)
+            {
+                bDir = backUpDirectory + folders[i];
+
+                // Check that each directory in the source dir exists in the back up directory. 
+                if (!System.IO.Directory.Exists(bDir))
+                {
+                    System.IO.Directory.CreateDirectory(bDir);
+                    sDir = sourceDirectory + folders[i];
+
+                    DirectoryCopy(sDir, bDir, true);
+                    LogMessage("Directory and Files Created: \t\t " + bDir);
+                }
+            }
+        }
+
+        private static List<string> GetDirectories(string path)
+        {
+            try
+            {
+                return System.IO.Directory.GetDirectories(path).ToList();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return new List<string>();
+            }
+        }
+
+        private static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
+        {
+            // Get the subdirectories for the specified directory.
+            DirectoryInfo dir = new DirectoryInfo(sourceDirName);
+
+            if (!dir.Exists)
+            {
+                throw new DirectoryNotFoundException(
+                    "Source directory does not exist or could not be found: "
+                    + sourceDirName);
+            }
+
+            DirectoryInfo[] dirs = dir.GetDirectories();
+            // If the destination directory doesn't exist, create it.
+            if (!Directory.Exists(destDirName))
+            {
+                Directory.CreateDirectory(destDirName);
+            }
+
+            // Get the files in the directory and copy them to the new location.
+            FileInfo[] files = dir.GetFiles();
+            foreach (FileInfo file in files)
+            {
+                string temppath = Path.Combine(destDirName, file.Name);
+                file.CopyTo(temppath, false);
+            }
+
+            // If copying subdirectories, copy them and their contents to new location.
+            if (copySubDirs)
+            {
+                foreach (DirectoryInfo subdir in dirs)
+                {
+                    string temppath = Path.Combine(destDirName, subdir.Name);
+                    DirectoryCopy(subdir.FullName, temppath, copySubDirs);
+                }
+            }
+        }
+
+        private static void RemoveAnyLastSlashes(ref string[] listOfDirectories)
+        {
+            if (listOfDirectories == null)
+            {
+                return;
+            }
+
+            string line;
+            int indexSlash;
+            char slash = '\\';
+
+            // Strip that last slash.
+            for (int i = 0; i < listOfDirectories.Length; i++)
+            {
+                line = listOfDirectories[i];
+                indexSlash = line.LastIndexOf(slash);
+
+                if (indexSlash > 0)
+                {
+                    if ((line.Length - 1) == indexSlash)
+                    {
+                        listOfDirectories[i] = line.Remove(indexSlash);
+                    }
+                }
+            }
+        }
+
+        /*
 
         private static void CopyModifiedFiles(string sourceDir, string backUpDir)
         {
@@ -155,7 +380,7 @@ namespace Scripto
             }
         }
 
-        /*
+       
 
         private static void CopyModifiedFiles(string sourceDir, string backUpDir, List<string> ignoreList )
         {
@@ -193,35 +418,9 @@ namespace Scripto
                 }
             }
         }
-        */
+        
 
-        private static void CopyModifiedFiles(string sourceDir, string backUpDir, List<string> files)
-        {
-            string sourceFilePath = "";
-            string backUpFilePath = "";  
-
-            for (int i = 0; i < files.Count; i++)
-            {
-                sourceFilePath = sourceDir + files[i];
-                backUpFilePath = backUpDir + files[i];
-
-                System.IO.FileInfo sourceFile = new System.IO.FileInfo(sourceFilePath);
-                System.IO.FileInfo backUpFile = new System.IO.FileInfo(backUpFilePath);
-
-                if (sourceFile.LastWriteTime > backUpFile.LastWriteTime)
-                {
-                    try
-                    {
-                        File.Copy(sourceFilePath, backUpFilePath, true);
-                    }
-                    catch (Exception ex)
-                    {
-                        LogMessage("Failed To Copy: \t\t" + sourceFilePath + "to \t\t" + backUpFilePath);
-                        continue;
-                    }
-                }
-            }
-        }
+       
 
         private static List<string> RemoveFilesInIgnoreList( List<string> files, List<string> ignoreList )
         {
@@ -269,28 +468,7 @@ namespace Scripto
             }
         }
 
-        private static void CopyFiles(string sourceDir, string backUpDir, List<string> files )
-        {
-            if( files == null || sourceDir == null || backUpDir == null )
-            {
-                return;
-            }
-
-            string sourceFilePath = "";
-            string backUpFilePath = "";
-
-            for (int i = 0; i < files.Count; i++)
-            {
-                sourceFilePath = sourceDir + files[i];
-                backUpFilePath = backUpDir + files[i];
-
-                if (!File.Exists(backUpFilePath))
-                {
-                    File.Copy(sourceFilePath, backUpFilePath);
-                    LogMessage("File Copied:\t\t" + backUpFilePath);
-                }
-            }
-        }
+       
 
         private static void CopyNewFiles( string sourceDir, string backUpDir )
         {
@@ -315,47 +493,9 @@ namespace Scripto
             }
         }
 
-        private static void CreateDirectoriesAndCopyFiles( List<string> srcDir, List<string> backUpDir )
-        {
-            string backUp = "";
-            string src = "";
+        
 
-            for (int i = 0; i < backUpDir.Count; i++)
-            {
-                backUp = backUpDir[i];
-
-                // Check that each directory in the source dir exists in the back up directory. 
-                if (!System.IO.Directory.Exists(backUp))
-                {
-                    System.IO.Directory.CreateDirectory(backUp);
-                    src = srcDir[i];
-                    
-                    DirectoryCopy(src, backUp, true);
-                    LogMessage("Directory and Files Created: \t\t " + backUp);
-                }
-            }
-        }
-
-        private static void CreateDirectoriesAndCopyFiles(string sourceDirectory, string backUpDirectory, List<string> folders)
-        {
-            string bDir = "";
-            string sDir = "";
-
-            for (int i = 0; i < folders.Count; i++)
-            {
-                bDir = backUpDirectory + folders[i];
-
-                // Check that each directory in the source dir exists in the back up directory. 
-                if (!System.IO.Directory.Exists(bDir))
-                {
-                    System.IO.Directory.CreateDirectory(bDir);
-                    sDir = sourceDirectory + folders[i];
-
-                    DirectoryCopy(sDir, bDir, true);
-                    LogMessage("Directory and Files Created: \t\t " + bDir);
-                }
-            }
-        }
+        
 
         private static List<string> GenerateBackupDirFromSourceDir(List<string> sourceDirectories, string sourceDir, string backUpDir )
         {
@@ -381,93 +521,13 @@ namespace Scripto
             return directoriesThatShouldExist.Cast<string>().ToList();
         }
 
-        private static List<string> RemoveStringsIfMatchesStringInList( List<string> stringList, List<string> stringsToRemove)
-        {
-            // At this point we can remove the source directories that are to be ignored.
+       
 
-            List<string> newList = new List<string>();
+       
 
-            for (int i = 0; i < stringList.Count; i++)
-            {
-                for (int j = 0; j < stringsToRemove.Count; j++)
-                {
-                    if (stringList[i] != stringsToRemove[j])
-                    {
-                        newList.Add(stringList[i]);
-                    }
-                }
-            }
-            return newList;
-        }
+       
 
-        private static List<string> RemoveStringIfContainsStringInList(List<string> stringList, List<string> stringsToRemove)
-        {
-            // At this point we can remove the source directories that are to be ignored.
-
-            List<string> newList = new List<string>();
-
-            for (int i = 0; i < stringList.Count; i++)
-            {
-                for (int j = 0; j < stringsToRemove.Count; j++)
-                {
-                    if ( ! stringList[i].Contains( stringsToRemove[j] ) )
-                    {
-                        newList.Add(stringList[i]);
-                    }
-                }
-            }
-            return newList;
-        }
-
-        private static List<string> ExtractDirectoriesToIgnore( string ignoreFilePath )
-        {
-            if( ignoreFilePath == null)
-            {
-                return null;
-            }
-
-            string[] lines = null;
-
-            try
-            {
-                lines = System.IO.File.ReadAllLines(ignoreFilePath);
-
-                RemoveAnyLastSlashes( ref lines );
-            }
-            catch
-            {
-                throw;
-            }
-
-            return lines.ToList<string>();
-        }
-
-        private static void RemoveAnyLastSlashes(ref string[] listOfDirectories)
-        {
-            if( listOfDirectories == null )
-            {
-                return;
-            }
-
-            string line;
-            int indexSlash;
-            char slash = '\\';
-
-            // Strip that last slash.
-            for (int i = 0; i < listOfDirectories.Length; i++)
-            {
-                line = listOfDirectories[i];
-                indexSlash = line.LastIndexOf(slash);
-
-                if (indexSlash > 0)
-                {
-                    if ( ( line.Length - 1) == indexSlash)
-                    {
-                        listOfDirectories[i] = line.Remove(indexSlash);
-                    }
-                }
-            }
-        }
+       
 
         private static string ConvertSourcePathToBackUpPath(string srcPath, string srcDir, string backUpDir)
         {
@@ -480,67 +540,9 @@ namespace Scripto
             return backupPath;
         }
 
-        private static List<string> GetDirectories(string path)
-        {
-            try
-            {
-                return System.IO.Directory.GetDirectories(path).ToList();
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return new List<string>();
-            }
-        }
+        
 
-        private static List<string> GetAllTheDirectories(string path)
-        {
-            var directories = new List<string>(GetDirectories(path));
-
-            for (var i = 0; i < directories.Count; i++)
-            {
-                directories.AddRange(GetDirectories(directories[i]));
-            }
-
-            return directories;
-        }
-
-        private static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
-        {
-            // Get the subdirectories for the specified directory.
-            DirectoryInfo dir = new DirectoryInfo(sourceDirName);
-
-            if (!dir.Exists)
-            {
-                throw new DirectoryNotFoundException(
-                    "Source directory does not exist or could not be found: "
-                    + sourceDirName);
-            }
-
-            DirectoryInfo[] dirs = dir.GetDirectories();
-            // If the destination directory doesn't exist, create it.
-            if (!Directory.Exists(destDirName))
-            {
-                Directory.CreateDirectory(destDirName);
-            }
-
-            // Get the files in the directory and copy them to the new location.
-            FileInfo[] files = dir.GetFiles();
-            foreach (FileInfo file in files)
-            {
-                string temppath = Path.Combine(destDirName, file.Name);
-                file.CopyTo(temppath, false);
-            }
-
-            // If copying subdirectories, copy them and their contents to new location.
-            if (copySubDirs)
-            {
-                foreach (DirectoryInfo subdir in dirs)
-                {
-                    string temppath = Path.Combine(destDirName, subdir.Name);
-                    DirectoryCopy(subdir.FullName, temppath, copySubDirs);
-                }
-            }
-        }
+    */
 
         private static void LogMessage( string message )
         {
@@ -551,5 +553,7 @@ namespace Scripto
 
             Log.WriteLine(DateTime.UtcNow.ToShortDateString() + " " + DateTime.UtcNow.ToShortTimeString() + "\t\t" + message);
         }
+
+
     }
 }
