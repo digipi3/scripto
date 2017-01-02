@@ -1,4 +1,5 @@
 ﻿#define TESTING
+//#define BATCH
 
 using System;
 using System.Collections;
@@ -19,6 +20,9 @@ namespace Scripto
     class Program
     {
         static StreamWriter Log = new StreamWriter("log.txt", true);
+#if BATCH
+        static StreamWriter Batch = new StreamWriter("batch.txt", true);
+#endif 
 
         static void Main(string[] args)
         {
@@ -69,7 +73,6 @@ namespace Scripto
             List<string> sourceDirectories = GetAllTheDirectories(sourceDir);
 
             // Ignore any directories that have been specified by the user
-
             if (directoriesToIgnore != null && directoriesToIgnore.Count > 0)
             {
                 sourceDirectories = RemoveStringsIfMatchesStringInList(sourceDirectories, directoriesToIgnore);
@@ -78,23 +81,40 @@ namespace Scripto
             // Remove root part of the source directory from each directory path
             List<string> folders = RemoveStringFromStringList(sourceDir, sourceDirectories);
 
-            // Generate backup directory paths using the source paths
-            // List<string> directoriesThatShouldExist = GenerateBackupDirFromSourceDir(sourceDirectories, sourceDir, backUpDir);
+            LogMessage("Creating any directories that do not exist and any files within them.\n\n");
 
             // Next the directories that don't exist in back-up need to be created and their files copied?!
             CreateDirectoriesAndCopyFiles(sourceDir, backUpDir, folders);
 
             // Get all the files from source and remove files in the ignore list:
-            List<string> files = System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories).ToList<string>();
+            List<string> files = 
+                System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories)
+                .ToList<string>();
+
+            int numFilesSource = files.Count;
+
             files = RemoveStringIfContainsStringInList(files, directoriesToIgnore);
             List<string> paths = RemoveStringFromStringList(sourceDir, files);
 
+            int numFilesAfterIgnore = files.Count;
+
+            int numFilesIgnored = numFilesSource - numFilesAfterIgnore;
+
+            LogMessage("Copying Files that are new.\n\n");
+            // Copy files that are new.
             CopyFiles(sourceDir, backUpDir, paths);
 
+            LogMessage("Copying Files that have been modified more recently.\n\n");
             // Copy Files that have been modified more recently:
             CopyModifiedFiles(sourceDir, backUpDir, paths );
 
+            LogMessage("Number of files in source directory: " + numFilesSource.ToString() );
+            LogMessage("Number of files ignored: " + numFilesIgnored.ToString());
+
             Log.Close();
+#if BATCH
+            Batch.Close();
+#endif
         }
 
         private static List<string> ExtractDirectoriesToIgnore(string ignoreFilePath)
@@ -211,8 +231,13 @@ namespace Scripto
 
                 if (!File.Exists(backUpFilePath))
                 {
+#if BATCH
+                    Batch.WriteLine("copy \"" + sourceFilePath + "\" \"" + backUpFilePath + "\"");
+#else
                     File.Copy(sourceFilePath, backUpFilePath);
-                    LogMessage("File Copied:\t\t" + backUpFilePath);
+                    LogMessage("File Copied:\t\t\t\t\t\t" + backUpFilePath);
+#endif
+                    
                 }
             }
         }
@@ -234,7 +259,12 @@ namespace Scripto
                 {
                     try
                     {
+#if BATCH
+                        Batch.WriteLine("copy \"" + sourceFilePath + "\" \"" + backUpFilePath + "\"");
+#else
                         File.Copy(sourceFilePath, backUpFilePath, true);
+                        LogMessage("Copied: \t\t" + sourceFilePath + "to \t\t" + backUpFilePath);
+#endif
                     }
                     catch (Exception ex)
                     {
@@ -257,11 +287,20 @@ namespace Scripto
                 // Check that each directory in the source dir exists in the back up directory. 
                 if (!System.IO.Directory.Exists(bDir))
                 {
+#if BATCH
+                    Batch.WriteLine("mkdir \"" + bDir + "\"");
+#else
                     System.IO.Directory.CreateDirectory(bDir);
-                    sDir = sourceDirectory + folders[i];
+#endif
 
+                    sDir = sourceDirectory + folders[i];
+#if BATCH
+                    string line = "copy \"" + sDir + "\\*.*\" \"" + bDir + "\\\"";
+                    Batch.WriteLine(line);
+#else
                     DirectoryCopy(sDir, bDir, true);
-                    LogMessage("Directory and Files Created: \t\t " + bDir);
+                    LogMessage("Directory and Files Created: \t\t" + bDir);
+#endif                    
                 }
             }
         }
@@ -294,7 +333,12 @@ namespace Scripto
             // If the destination directory doesn't exist, create it.
             if (!Directory.Exists(destDirName))
             {
+#if BATCH
+                Batch.WriteLine("mkdir \"" + destDirName + "\"");
+#else
                 Directory.CreateDirectory(destDirName);
+                LogMessage("Directory Created: \t\t\t\t\t" + destDirName);
+#endif
             }
 
             // Get the files in the directory and copy them to the new location.
@@ -302,7 +346,15 @@ namespace Scripto
             foreach (FileInfo file in files)
             {
                 string temppath = Path.Combine(destDirName, file.Name);
+
+#if BATCH
+                string line = "copy \"" + file.FullName + "\\*.*\" \"" + temppath + "\\\"";
+                Batch.WriteLine(line);
+#else
                 file.CopyTo(temppath, false);
+                LogMessage("File copied: \t\t\t\t\t\t" + temppath);
+
+#endif
             }
 
             // If copying subdirectories, copy them and their contents to new location.
@@ -311,7 +363,13 @@ namespace Scripto
                 foreach (DirectoryInfo subdir in dirs)
                 {
                     string temppath = Path.Combine(destDirName, subdir.Name);
+#if BATCH
+                    string line = "copy \"" + subdir.FullName + "\\*.*\" \"" + temppath + "\"";
+                    Batch.WriteLine(line);
+#else
                     DirectoryCopy(subdir.FullName, temppath, copySubDirs);
+                    LogMessage("Directory and Files Created: \t\t" + temppath);
+#endif
                 }
             }
         }
