@@ -1,4 +1,4 @@
-﻿#define TESTING
+﻿//#define TESTING
 //#define BATCH
 
 using System;
@@ -37,7 +37,12 @@ namespace Scripto
 
             args[2] = "C:\\scriptoignore.txt";
 #endif
-
+            if( args == null )
+            {
+                LogMessage("Source and backup directory are required as arguments" + args[0].ToString());
+                Log.Close();
+                return;
+            }
             if (args.Length < 2)
             {
                 Log.Close();
@@ -56,30 +61,32 @@ namespace Scripto
                 return;
             }
 
+            LogMessage("Source is: " + args[0].ToString());
+            LogMessage("Backup is: " + args[1].ToString());
+
             List<string> directoriesToIgnore = null;
 
             //Sometimes directory path will be passed to the program using single and double quotes
-            if (args[0].Contains("'") )
+            if ( args[0].Contains("'") )
             {
                 args[0] = args[0].Replace("'", "");
             }
 
-            if (args[0].Contains("\""))
+            if ( args[0].Contains("\""))
             {
                 args[0] = args[0].Replace("\"", "");
             }
 
             //Sometimes a directory path will be passed to the program using single and double quotes
-            if (args[1].Contains("'") )
+            if ( args[1].Contains("'") )
             {
                 args[1] = args[1].Replace("'", "");
             }
 
-
-            if (args[1].Contains("\""))
+            if ( args[1].Contains("\""))
             {
                 args[1] = args[1].Replace("\"", "");
-            }
+            }            
 
             if ( ! Directory.Exists( args[0] ) )
             {
@@ -103,17 +110,20 @@ namespace Scripto
                 System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories)
                 .ToList<string>();
 
-            if ( args[2] != null )
+            if (args.Length > 2)
             {
-                try
+                if (args[2] != null)
                 {
-                    directoriesToIgnore = ExtractDirectoriesToIgnore(args[2]);
-                }
-                catch( Exception ex )
-                {
-                    LogMessage("Error opening ignore file" + ex.ToString());
-                    Log.Close();
-                    return;
+                    try
+                    {
+                        directoriesToIgnore = ExtractDirectoriesToIgnore(args[2]);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogMessage("Error opening ignore file" + ex.ToString());
+                        Log.Close();
+                        return;
+                    }
                 }
             }
            
@@ -137,31 +147,31 @@ namespace Scripto
                 if (directoriesToIgnore != null && directoriesToIgnore.Count > 0)
                 {
                     sourceDirectories = RemoveStringsIfMatchesStringInList(sourceDirectories, directoriesToIgnore);
+                    files = RemoveStringIfContainsStringInList(files, directoriesToIgnore);
                 }
 
                 // Remove root part of the source directory from each directory path
                 List<string> folders = RemoveStringFromStringList(sourceDir, sourceDirectories);
 
-                LogMessage("Creating any directories that do not exist and any files within them.\n\n");
+                LogMessage("Creating any directories that do not exist and any files within them.\n");
 
                 // Next the directories that don't exist in back-up need to be created and their files copied?!
-                CreateDirectoriesAndCopyFiles(sourceDir, backUpDir, folders);
+                CreateDirectoriesAndCopyFiles(sourceDir, backUpDir, folders);                
             }            
 
-            int numFilesSource = files.Count;
+            int numFilesSource = files.Count;  
 
-            files = RemoveStringIfContainsStringInList(files, directoriesToIgnore);
             List<string> paths = RemoveStringFromStringList(sourceDir, files);
 
             int numFilesAfterIgnore = files.Count;
 
             int numFilesIgnored = numFilesSource - numFilesAfterIgnore;
 
-            LogMessage("Copying Files that are new.\n\n");
+            LogMessage("Copying new files.\n");
             // Copy files that are new.
             CopyFiles(sourceDir, backUpDir, paths);
 
-            LogMessage("Copying Files that have been modified more recently.\n\n");
+            LogMessage("Copying more recently modified files.\n");
             // Copy Files that have been modified more recently:
             CopyModifiedFiles(sourceDir, backUpDir, paths );
 
@@ -172,6 +182,11 @@ namespace Scripto
 #if BATCH
             Batch.Close();
 #endif
+        }
+
+        private static string CheckSourceArgumentString( string sourceArgument )
+        {
+            return "";
         }
 
         private static List<string> ExtractDirectoriesToIgnore(string ignoreFilePath)
@@ -292,7 +307,7 @@ namespace Scripto
                     Batch.WriteLine("copy \"" + sourceFilePath + "\" \"" + backUpFilePath + "\"");
 #else
                     File.Copy(sourceFilePath, backUpFilePath);
-                    LogMessage("File Copied:\t\t\t\t\t\t" + backUpFilePath);
+                    LogMessage("File Copied: " + backUpFilePath);
 #endif
                     
                 }
@@ -320,12 +335,12 @@ namespace Scripto
                         Batch.WriteLine("copy \"" + sourceFilePath + "\" \"" + backUpFilePath + "\"");
 #else
                         File.Copy(sourceFilePath, backUpFilePath, true);
-                        LogMessage("Copied: \t\t" + sourceFilePath + "to \t\t" + backUpFilePath);
+                        LogMessage("Copied: " + sourceFilePath + " to " + backUpFilePath);
 #endif
                     }
                     catch (Exception ex)
                     {
-                        LogMessage("Failed To Copy: \t\t" + sourceFilePath + "to \t\t" + backUpFilePath);
+                        LogMessage("Failed To Copy: " + sourceFilePath + "to " + backUpFilePath);
                         continue;
                     }
                 }
@@ -356,7 +371,7 @@ namespace Scripto
                     Batch.WriteLine(line);
 #else
                     DirectoryCopy(sDir, bDir, true);
-                    LogMessage("Directory and Files Created: \t\t" + bDir);
+                    LogMessage("Directory and Files Created: " + bDir);
 #endif                    
                 }
             }
@@ -394,7 +409,7 @@ namespace Scripto
                 Batch.WriteLine("mkdir \"" + destDirName + "\"");
 #else
                 Directory.CreateDirectory(destDirName);
-                LogMessage("Directory Created: \t\t\t\t\t" + destDirName);
+                LogMessage("Directory Created: " + destDirName);
 #endif
             }
 
@@ -409,7 +424,7 @@ namespace Scripto
                 Batch.WriteLine(line);
 #else
                 file.CopyTo(temppath, false);
-                LogMessage("File copied: \t\t\t\t\t\t" + temppath);
+                LogMessage("File copied: " + temppath);
 
 #endif
             }
@@ -425,7 +440,7 @@ namespace Scripto
                     Batch.WriteLine(line);
 #else
                     DirectoryCopy(subdir.FullName, temppath, copySubDirs);
-                    LogMessage("Directory and Files Created: \t\t" + temppath);
+                    LogMessage("Directory and Files Created: " + temppath);
 #endif
                 }
             }
@@ -465,7 +480,8 @@ namespace Scripto
                 return;
             }
 
-            Log.WriteLine(DateTime.UtcNow.ToShortDateString() + " " + DateTime.UtcNow.ToShortTimeString() + "\t\t" + message);
+            Log.WriteLine(DateTime.UtcNow.ToString() + "\t" + message);
+            Console.WriteLine(DateTime.UtcNow.ToString() + "\t" + message);
         }
     }
 }
