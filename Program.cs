@@ -1,5 +1,5 @@
-﻿//#define TESTING
-//#define BATCH
+﻿#define TESTING
+#define BATCH
 
 using System;
 using System.Collections;
@@ -31,13 +31,16 @@ namespace Scripto
             //args[0] = "C:\\src";
             //args[1] = "C:\\des";
 
-            args[0] = "'C:\\Users\\mark\\Documents\\test'";
-            args[1] = "'E:\\test backup'";
+            args[0] = "C:\\Users\\mark\\Documents\\test";
+            args[1] = "E:\\test backup";
+
+            args[0] = "C:\\Users\\mark\\Documents\\Mark's Files"; 
+            args[1] = "E:\\Mark's Backup"; 
 
 
-            args[2] = "C:\\scriptoignore.txt";
+            args[2] = "C:\\Users\\mark\\Documents\\Mark's Files\\ignorelist.txt";
 #endif
-            if( args == null )
+            if ( args == null )
             {
                 LogMessage("Source and backup directory are required as arguments" + args[0].ToString());
                 Log.Close();
@@ -66,23 +69,13 @@ namespace Scripto
 
             List<string> directoriesToIgnore = null;
 
-            //Sometimes directory path will be passed to the program using single and double quotes
-            if ( args[0].Contains("'") )
-            {
-                args[0] = args[0].Replace("'", "");
-            }
-
+            //Sometimes directory path will be passed to the program using double quotes
             if ( args[0].Contains("\""))
             {
                 args[0] = args[0].Replace("\"", "");
             }
 
             //Sometimes a directory path will be passed to the program using single and double quotes
-            if ( args[1].Contains("'") )
-            {
-                args[1] = args[1].Replace("'", "");
-            }
-
             if ( args[1].Contains("\""))
             {
                 args[1] = args[1].Replace("\"", "");
@@ -229,15 +222,22 @@ namespace Scripto
             // At this point we can remove the source directories that are to be ignored.
 
             List<string> newList = new List<string>();
+            bool equalToAny = false;
 
             for (int i = 0; i < stringList.Count; i++)
             {
+                equalToAny = false;
                 for (int j = 0; j < stringsToRemove.Count; j++)
                 {
-                    if (stringList[i] != stringsToRemove[j])
+                    if (stringList[i] == stringsToRemove[j])
                     {
-                        newList.Add(stringList[i]);
-                    }
+                        equalToAny = true;
+                        break;
+                    } 
+                }
+                if (equalToAny == false)
+                {
+                    newList.Add(stringList[i]);
                 }
             }
             return newList;
