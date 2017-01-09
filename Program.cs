@@ -28,16 +28,16 @@ namespace Scripto
         {
 #if TESTING
             args = new string[3];
-            args[0] = "C:\\src";
-            args[1] = "C:\\des";
-            args[2] = "C:\\ignorelist.txt";
+            //args[0] = "C:\\src";
+            //args[1] = "C:\\des";
+            //args[2] = "C:\\ignorelist.txt";
 
             //args[0] = "C:\\Users\\mark\\Documents\\test";
             //args[1] = "E:\\test backup";
 
-            //args[0] = "C:\\Users\\mark\\Documents\\Mark's Files"; 
-            //args[1] = "E:\\Mark's Backup"; 
-            //args[2] = "C:\\Users\\mark\\Documents\\Mark's Files\\ignorelist.txt";
+            args[0] = "C:\\Users\\mark\\Documents\\Mark's Files"; 
+            args[1] = "E:\\Mark's Backup"; 
+            args[2] = "C:\\Users\\mark\\Documents\\Mark's Files\\ignorelist.txt";
 #endif
             if ( args == null )
             {
@@ -102,6 +102,8 @@ namespace Scripto
                 System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories)
                 .ToList<string>();
 
+            int numFilesSource = files.Count;
+
             if (args.Length > 2)
             {
                 if (args[2] != null)
@@ -109,20 +111,18 @@ namespace Scripto
                     try
                     {
                         directoriesToIgnore = ExtractDirectoriesToIgnore(args[2]);
+                        List<string> nonExistDir = GetNonExistentDirectoriesOrFiles(directoriesToIgnore);
 
-                        List<string> ignoreMisMatches = new List<String>();
-
-                        for( int i = 0; i < directoriesToIgnore.Count; i++ )
+                        if( nonExistDir.Count > 0 )
                         {
-                            if( Directory.Exists(directoriesToIgnore[i]) == false )
-                            {
-                                ignoreMisMatches.Add(directoriesToIgnore[i]);
-                            }
+                            LogMessage("Some of the ignore directories don't exist!");
+                            Log.Close();
+                            return;
                         }
                     }
                     catch (Exception ex)
                     {
-                        LogMessage("Error opening ignore file" + ex.ToString());
+                        LogMessage("Error dealing with ignore file" + ex.ToString());
                         Log.Close();
                         return;
                     }
@@ -159,9 +159,7 @@ namespace Scripto
 
                 // Next the directories that don't exist in back-up need to be created and their files copied?!
                 CreateDirectoriesAndCopyFiles(sourceDir, backUpDir, folders);                
-            }            
-
-            int numFilesSource = files.Count;  
+            }          
 
             List<string> paths = RemoveStringFromStringList(sourceDir, files);
 
@@ -184,6 +182,24 @@ namespace Scripto
 #if BATCH
             Batch.Close();
 #endif
+        }
+
+        private static List<string> GetNonExistentDirectoriesOrFiles( List<string> directories )
+        {
+            List<string> nonExist = new List<String>();
+
+            for (int i = 0; i < directories.Count; i++)
+            {
+                if (! Directory.Exists(directories[i]) )
+                {
+                    if (! File.Exists(directories[i]) )
+                    {
+                        nonExist.Add(directories[i]);
+                    }
+                }
+            }
+
+            return nonExist;
         }
 
         private static string CheckSourceArgumentString( string sourceArgument )
@@ -232,15 +248,17 @@ namespace Scripto
 
             List<string> newList = new List<string>();
             bool equalToAny = false;
+            List<string> ignored = new List<string>(); // For Testing.
 
             for (int i = 0; i < stringList.Count; i++)
             {
                 equalToAny = false;
                 for (int j = 0; j < stringsToRemove.Count; j++)
                 {
-                    if (stringList[i] == stringsToRemove[j])
+                    if ( stringList[i].Contains( stringsToRemove[j] ) )
                     {
                         equalToAny = true;
+                        ignored.Add(stringList[i]);
                         break;
                     } 
                 }
@@ -279,15 +297,24 @@ namespace Scripto
             // At this point we can remove the source directories that are to be ignored.
 
             List<string> newList = new List<string>();
+            bool foundOne = false;
+            List<string> removed = new List<string>(); // For Testing.
 
             for (int i = 0; i < stringList.Count; i++)
             {
+                foundOne = false;
                 for (int j = 0; j < stringsToRemove.Count; j++)
                 {
-                    if (!stringList[i].Contains(stringsToRemove[j]))
+                    if (stringList[i].Contains(stringsToRemove[j]))
                     {
-                        newList.Add(stringList[i]);
-                    }
+                        foundOne = true;
+                        removed.Add( stringList[i] );
+                        break;                                                               
+                    }                                  
+                }
+                if( foundOne == false )
+                {
+                    newList.Add(stringList[i]);
                 }
             }
             return newList;
@@ -489,8 +516,8 @@ namespace Scripto
                 return;
             }
 
-            Log.WriteLine(DateTime.UtcNow.ToString() + "\t" + message);
-            Console.WriteLine(DateTime.UtcNow.ToString() + "\t" + message);
+            Log.WriteLine(DateTime.UtcNow.ToString() + "\t\t" + message);
+            Console.WriteLine(DateTime.UtcNow.ToString() + "\t\t" + message);
         }
     }
 }
