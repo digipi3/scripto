@@ -115,7 +115,7 @@ namespace Scripto
 
                         if( nonExistDir.Count > 0 )
                         {
-                            LogMessage("Some of the ignore directories don't exist!");
+                            LogMessage("Some of the ignore directories and files don't exist!");
                             Log.Close();
                             return;
                         }
@@ -161,18 +161,17 @@ namespace Scripto
                 CreateDirectoriesAndCopyFiles(sourceDir, backUpDir, folders);                
             }          
 
+            // We just need the folders and files in the directory:
             List<string> paths = RemoveStringFromStringList(sourceDir, files);
 
-            int numFilesAfterIgnore = files.Count;
+            int numFilesIgnored = numFilesSource - files.Count;
 
-            int numFilesIgnored = numFilesSource - numFilesAfterIgnore;
-
-            LogMessage("Copying new files.\n");
             // Copy files that are new.
+            LogMessage("Copying new files.\n");            
             CopyFiles(sourceDir, backUpDir, paths);
-
-            LogMessage("Copying more recently modified files.\n");
+            
             // Copy Files that have been modified more recently:
+            LogMessage("Copying more recently modified files.\n");            
             CopyModifiedFiles(sourceDir, backUpDir, paths );
 
             LogMessage("Number of files in source directory: " + numFilesSource.ToString() );
