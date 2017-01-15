@@ -1,5 +1,5 @@
 ﻿#define TESTING
-//#define BATCH
+//#define NOACTION
 
 using System;
 using System.Collections;
@@ -181,6 +181,7 @@ namespace Scripto
                 if (!System.IO.Directory.Exists(directory))
                 {
                     System.IO.Directory.CreateDirectory(directory);
+                    LogMessage("Create Directory:" + directory);
                 }
             }
         }       
@@ -333,110 +334,6 @@ namespace Scripto
                         LogMessage("Failed To Copy: " + sourceFilePath + "to " + backUpFilePath);
                         continue;
                     }
-                }
-            }
-        }
-
-        private static void CreateDirectoriesAndCopyFiles(string sourceDirectory, string backUpDirectory, List<string> folders)
-        {
-            string bDir = "";
-            string sDir = "";
-
-            if( folders == null )
-            {
-                return;
-            }
-
-            for (int i = 0; i < folders.Count; i++)
-            {
-                bDir = backUpDirectory + folders[i];
-
-                // Check that each directory in the source dir exists in the back up directory. 
-                if (!System.IO.Directory.Exists(bDir))
-                {
-#if BATCH
-                    Batch.WriteLine("mkdir \"" + bDir + "\"");
-#else
-                    System.IO.Directory.CreateDirectory(bDir);
-#endif
-
-                    sDir = sourceDirectory + folders[i];
-#if BATCH
-                    string line = "copy \"" + sDir + "\\*.*\" \"" + bDir + "\\\"";
-                    Batch.WriteLine(line);
-#else
-                    DirectoryCopy(sDir, bDir, true);
-                    LogMessage("Directory and Files Created: " + bDir);
-#endif                    
-                }
-            }
-        }
-
-        private static List<string> GetDirectories(string path)
-        {
-            try
-            {
-                return System.IO.Directory.GetDirectories(path).ToList();
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return new List<string>();
-            }
-        }
-
-        private static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
-        {
-            // Get the subdirectories for the specified directory.
-            DirectoryInfo dir = new DirectoryInfo(sourceDirName);
-
-            if (!dir.Exists)
-            {
-                throw new DirectoryNotFoundException(
-                    "Source directory does not exist or could not be found: "
-                    + sourceDirName);
-            }
-
-            DirectoryInfo[] dirs = dir.GetDirectories();
-            // If the destination directory doesn't exist, create it.
-            if (!Directory.Exists(destDirName))
-            {
-#if BATCH
-                Batch.WriteLine("mkdir \"" + destDirName + "\"");
-#else
-                Directory.CreateDirectory(destDirName);
-                LogMessage("Directory Created: " + destDirName);
-#endif
-            }
-
-            // Get the files in the directory and copy them to the new location.
-            FileInfo[] files = dir.GetFiles();
-            foreach (FileInfo file in files)
-            {
-                string temppath = Path.Combine(destDirName, file.Name);
-
-#if BATCH
-                string line = "copy \"" + file.FullName + "\\*.*\" \"" + temppath + "\\\"";
-                Batch.WriteLine(line);
-#else
-                file.CopyTo(temppath, false);
-                LogMessage("File copied: " + temppath);
-
-#endif
-            }
-
-            // If copying subdirectories, copy them and their contents to new location.
-            if (copySubDirs)
-            {
-                foreach (DirectoryInfo subdir in dirs)
-                {
-                    string temppath = Path.Combine(destDirName, subdir.Name);
-#if BATCH
-                    string line = "copy \"" + subdir.FullName + "\\*.*\" \"" + temppath + "\"";
-                    Batch.WriteLine(line);
-#else
-                    DirectoryCopy(subdir.FullName, temppath, copySubDirs);
-                    LogMessage("Directory and Files Created: " + temppath);
-#endif
                 }
             }
         }
