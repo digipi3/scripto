@@ -1,5 +1,5 @@
 ﻿#define TESTING
-//#define NOACTION
+//#define ACTION
 
 using System;
 using System.Collections;
@@ -19,7 +19,7 @@ namespace Scripto
      */
     class Program
     {
-        static StreamWriter Log = new StreamWriter("log.txt", true);
+        static StreamWriter Log = new StreamWriter("log.txt", false);
 #if BATCH
         static StreamWriter Batch = new StreamWriter("batch.txt", true);
 #endif 
@@ -35,9 +35,9 @@ namespace Scripto
             //args[0] = "C:\\Users\\mark\\Documents\\test";
             //args[1] = "E:\\test backup";
 
-            //args[0] = "C:\\Users\\mark\\Documents\\Mark's Files"; 
-            // args[1] = "E:\\Mark's Backup"; 
-            //args[2] = "C:\\Users\\mark\\Documents\\Mark's Files\\ignorelist.txt";
+            args[0] = "C:\\Users\\mark\\Documents\\Mark's Files"; 
+            args[1] = "E:\\Mark's Backup"; 
+            args[2] = "C:\\Users\\mark\\Documents\\Mark's Files\\ignorelist.txt";
 #endif
 
             List<string> directoriesToIgnore = null;
@@ -167,6 +167,16 @@ namespace Scripto
 
         private static void CreateDirectories(string sourceDir,string backUpDir, List<string> directories)
         {
+            if( directories == null || sourceDir == null || backUpDir == null )
+            {
+                return;
+            }
+
+            if( directories.Count < 1 )
+            {
+                return;
+            }
+
             // Remove root part of the source directory from each directory path
             List<string> folders = RemoveStringFromStringList(sourceDir, directories);
 
@@ -180,7 +190,9 @@ namespace Scripto
                 // Check that each directory in the source dir exists in the back up directory. 
                 if (!System.IO.Directory.Exists(directory))
                 {
+#if ACTION
                     System.IO.Directory.CreateDirectory(directory);
+#endif
                     LogMessage("Create Directory:" + directory);
                 }
             }
@@ -294,12 +306,10 @@ namespace Scripto
 
                 if (!File.Exists(backUpFilePath))
                 {
-#if BATCH
-                    Batch.WriteLine("copy \"" + sourceFilePath + "\" \"" + backUpFilePath + "\"");
-#else
+#if ACTION
                     File.Copy(sourceFilePath, backUpFilePath, true );
-                    LogMessage("File Copied: " + backUpFilePath);
 #endif
+                    LogMessage("File Copied: " + backUpFilePath);
                     
                 }
             }
@@ -322,12 +332,11 @@ namespace Scripto
                 {
                     try
                     {
-#if BATCH
-                        Batch.WriteLine("copy \"" + sourceFilePath + "\" \"" + backUpFilePath + "\"");
-#else
+#if ACTION
                         File.Copy(sourceFilePath, backUpFilePath, true);
-                        LogMessage("Copied: " + sourceFilePath + " to " + backUpFilePath);
 #endif
+                        LogMessage("Copied: " + sourceFilePath + " to " + backUpFilePath);
+
                     }
                     catch (Exception ex)
                     {
@@ -373,7 +382,7 @@ namespace Scripto
             }
 
             Log.WriteLine(DateTime.UtcNow.ToString() + "\t\t" + message);
-            Console.WriteLine(DateTime.UtcNow.ToString() + "\t\t" + message);
+            //Console.WriteLine(DateTime.UtcNow.ToString() + "\t\t" + message);
         }
     }
 }
