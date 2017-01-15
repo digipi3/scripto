@@ -1,5 +1,5 @@
 ﻿#define TESTING
-#define BATCH
+//#define BATCH
 
 using System;
 using System.Collections;
@@ -28,57 +28,25 @@ namespace Scripto
         {
 #if TESTING
             args = new string[3];
-            //args[0] = "C:\\src";
-            //args[1] = "C:\\des";
-            //args[2] = "C:\\ignorelist.txt";
+            args[0] = "C:\\src";
+            args[1] = "C:\\des";
+            args[2] = "C:\\ignorelist.txt";
 
             //args[0] = "C:\\Users\\mark\\Documents\\test";
             //args[1] = "E:\\test backup";
 
-            args[0] = "C:\\Users\\mark\\Documents\\Mark's Files"; 
-            args[1] = "E:\\Mark's Backup"; 
-            args[2] = "C:\\Users\\mark\\Documents\\Mark's Files\\ignorelist.txt";
+            //args[0] = "C:\\Users\\mark\\Documents\\Mark's Files"; 
+            // args[1] = "E:\\Mark's Backup"; 
+            //args[2] = "C:\\Users\\mark\\Documents\\Mark's Files\\ignorelist.txt";
 #endif
-            if ( args == null )
-            {
-                LogMessage("Source and backup directory are required as arguments" + args[0].ToString());
-                Log.Close();
-                return;
-            }
-            if (args.Length < 2)
-            {
-                Log.Close();
-                return;
-            }
-
-            if (args[0] == null)
-            {
-                Log.Close();
-                return;
-            }
-
-            if (args[1] == null)
-            {
-                Log.Close();
-                return;
-            }
-
-            LogMessage("Source is: " + args[0].ToString());
-            LogMessage("Backup is: " + args[1].ToString());
 
             List<string> directoriesToIgnore = null;
 
-            //Sometimes directory path will be passed to the program using double quotes
-            if ( args[0].Contains("\""))
+            if( CheckArguments(args) == false )
             {
-                args[0] = args[0].Replace("\"", "");
+                LogMessage("There's an issue with the arguments");
+                return;
             }
-
-            //Sometimes a directory path will be passed to the program using single and double quotes
-            if ( args[1].Contains("\""))
-            {
-                args[1] = args[1].Replace("\"", "");
-            }            
 
             if ( ! Directory.Exists( args[0] ) )
             {
@@ -95,14 +63,7 @@ namespace Scripto
             }
 
             String sourceDir = args[0];
-            String backUpDir = args[1];
-
-            // Get all the files from source and remove files in the ignore list:
-            List<string> files =
-                System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories)
-                .ToList<string>();
-
-            int numFilesSource = files.Count;
+            String backUpDir = args[1];           
 
             if (args.Length > 2)
             {
@@ -115,30 +76,119 @@ namespace Scripto
 
                         if( nonExistDir.Count > 0 )
                         {
-                            LogMessage("Some of the ignore directories and files don't exist!");
-                            Log.Close();
                             return;
                         }
                     }
                     catch (Exception ex)
                     {
                         LogMessage("Error dealing with ignore file" + ex.ToString());
-                        Log.Close();
                         return;
                     }
                 }
             }
-           
 
-            if( files.Count < 1 )
+            // Get all the files from source and remove files in the ignore list:
+            List<string> files =
+                System.IO.Directory.GetFiles(sourceDir, "*.*", System.IO.SearchOption.AllDirectories)
+                .ToList<string>();
+
+            // Get all the directories from source:
+            List<string> directories = 
+                System.IO.Directory.GetDirectories(sourceDir, "*.*", System.IO.SearchOption.AllDirectories)
+                .ToList<string>();
+
+            int numFilesSource = files.Count;
+
+            if ( files.Count < 1 )
             {
                 LogMessage("No files in the source directory?!");
                 Log.Close();
                 return;
-            }
+            }          
 
             LogMessage("Start the fans please");
 
+            if ( directoriesToIgnore.Count > 0 )
+            {
+                // Remove Directories that we want to ignore:
+                directories = RemoveStringsFromStringList(directories, directoriesToIgnore);
+                files = RemoveStringsFromStringList(files, directoriesToIgnore);
+            }
+
+            CreateDirectories(sourceDir, backUpDir, directories); 
+
+            List<string> paths = RemoveStringFromStringList(sourceDir, files);     
+                            
+            CopyFiles(sourceDir, backUpDir, paths);         
+            CopyModifiedFiles(sourceDir, backUpDir, paths );
+
+            Log.Close();
+#if BATCH
+            Batch.Close();
+#endif
+        }
+
+        private static bool CheckArguments( string [] args )
+        {
+            if (args == null)
+            {
+                return false;
+            }
+            if (args.Length < 2)
+            {
+                Log.Close();
+                return false;
+            }
+
+            if (args[0] == null)
+            {
+                Log.Close();
+                return false;
+            }
+
+            if (args[1] == null)
+            {
+                Log.Close();
+                return false;
+            }
+
+            //Sometimes directory path will be passed to the program using double quotes
+            if (args[0].Contains("\""))
+            {
+                args[0] = args[0].Replace("\"", "");
+            }
+
+            //Sometimes a directory path will be passed to the program using single and double quotes
+            if (args[1].Contains("\""))
+            {
+                args[1] = args[1].Replace("\"", "");
+            }
+
+            return true;
+        }
+
+        private static void CreateDirectories(string sourceDir,string backUpDir, List<string> directories)
+        {
+            // Remove root part of the source directory from each directory path
+            List<string> folders = RemoveStringFromStringList(sourceDir, directories);
+
+            // Create Directories
+            string directory;
+
+            for (int i = 0; i < folders.Count; i++)
+            {
+                directory = backUpDir + folders[i];
+
+                // Check that each directory in the source dir exists in the back up directory. 
+                if (!System.IO.Directory.Exists(directory))
+                {
+                    System.IO.Directory.CreateDirectory(directory);
+                }
+            }
+        }
+
+        private static void MirrorDirectoriesAndFiles(string sourceDir, string backUpDir, List<string> directoriesToIgnore )
+        {
             // Get all the directories in the source directory
             List<string> sourceDirectories = GetAllTheDirectories(sourceDir);
 
@@ -148,8 +198,8 @@ namespace Scripto
                 // Ignore any directories that have been specified by the user
                 if (directoriesToIgnore != null && directoriesToIgnore.Count > 0)
                 {
-                    sourceDirectories = RemoveStringsIfMatchesStringInList(sourceDirectories, directoriesToIgnore);
-                    files = RemoveStringIfContainsStringInList(files, directoriesToIgnore);
+                    //sourceDirectories = RemoveStringsIfMatchesStringInList(sourceDirectories, directoriesToIgnore);
+                    //files = RemoveStringIfContainsStringInList(files, directoriesToIgnore);
                 }
 
                 // Remove root part of the source directory from each directory path
@@ -158,29 +208,8 @@ namespace Scripto
                 LogMessage("Creating any directories that do not exist and any files within them.\n");
 
                 // Next the directories that don't exist in back-up need to be created and their files copied?!
-                CreateDirectoriesAndCopyFiles(sourceDir, backUpDir, folders);                
-            }          
-
-            // We just need the folders and files in the directory:
-            List<string> paths = RemoveStringFromStringList(sourceDir, files);
-
-            int numFilesIgnored = numFilesSource - files.Count;
-
-            // Copy files that are new.
-            LogMessage("Copying new files.\n");            
-            CopyFiles(sourceDir, backUpDir, paths);
-            
-            // Copy Files that have been modified more recently:
-            LogMessage("Copying more recently modified files.\n");            
-            CopyModifiedFiles(sourceDir, backUpDir, paths );
-
-            LogMessage("Number of files in source directory: " + numFilesSource.ToString() );
-            LogMessage("Number of files ignored: " + numFilesIgnored.ToString());
-
-            Log.Close();
-#if BATCH
-            Batch.Close();
-#endif
+                CreateDirectoriesAndCopyFiles(sourceDir, backUpDir, folders);
+            }
         }
 
         private static List<string> GetNonExistentDirectoriesOrFiles( List<string> directories )
@@ -241,7 +270,7 @@ namespace Scripto
             return directories;
         }
 
-        private static List<string> RemoveStringsIfMatchesStringInList(List<string> stringList, List<string> stringsToRemove)
+        private static List<string> RemoveStringsFromStringList(List<string> stringList, List<string> stringsToRemove)
         {
             // At this point we can remove the source directories that are to be ignored.
 
@@ -341,7 +370,7 @@ namespace Scripto
 #if BATCH
                     Batch.WriteLine("copy \"" + sourceFilePath + "\" \"" + backUpFilePath + "\"");
 #else
-                    File.Copy(sourceFilePath, backUpFilePath);
+                    File.Copy(sourceFilePath, backUpFilePath, true );
                     LogMessage("File Copied: " + backUpFilePath);
 #endif
                     
@@ -386,6 +415,11 @@ namespace Scripto
         {
             string bDir = "";
             string sDir = "";
+
+            if( folders == null )
+            {
+                return;
+            }
 
             for (int i = 0; i < folders.Count; i++)
             {
