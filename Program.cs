@@ -97,8 +97,6 @@ namespace Scripto
                 System.IO.Directory.GetDirectories(sourceDir, "*.*", System.IO.SearchOption.AllDirectories)
                 .ToList<string>();
 
-            int numFilesSource = files.Count;
-
             if ( files.Count < 1 )
             {
                 LogMessage("No files in the source directory?!");
@@ -185,32 +183,7 @@ namespace Scripto
                     System.IO.Directory.CreateDirectory(directory);
                 }
             }
-        }
-
-        private static void MirrorDirectoriesAndFiles(string sourceDir, string backUpDir, List<string> directoriesToIgnore )
-        {
-            // Get all the directories in the source directory
-            List<string> sourceDirectories = GetAllTheDirectories(sourceDir);
-
-            // if there aren't any directories then this stuff doesn't need to happen:
-            if (sourceDirectories.Count > 0)
-            {
-                // Ignore any directories that have been specified by the user
-                if (directoriesToIgnore != null && directoriesToIgnore.Count > 0)
-                {
-                    //sourceDirectories = RemoveStringsIfMatchesStringInList(sourceDirectories, directoriesToIgnore);
-                    //files = RemoveStringIfContainsStringInList(files, directoriesToIgnore);
-                }
-
-                // Remove root part of the source directory from each directory path
-                List<string> folders = RemoveStringFromStringList(sourceDir, sourceDirectories);
-
-                LogMessage("Creating any directories that do not exist and any files within them.\n");
-
-                // Next the directories that don't exist in back-up need to be created and their files copied?!
-                CreateDirectoriesAndCopyFiles(sourceDir, backUpDir, folders);
-            }
-        }
+        }       
 
         private static List<string> GetNonExistentDirectoriesOrFiles( List<string> directories )
         {
@@ -228,11 +201,6 @@ namespace Scripto
             }
 
             return nonExist;
-        }
-
-        private static string CheckSourceArgumentString( string sourceArgument )
-        {
-            return "";
         }
 
         private static List<string> ExtractDirectoriesToIgnore(string ignoreFilePath)
@@ -256,18 +224,6 @@ namespace Scripto
             }
 
             return lines.ToList<string>();
-        }
-
-        private static List<string> GetAllTheDirectories(string path)
-        {
-            var directories = new List<string>(GetDirectories(path));
-
-            for (var i = 0; i < directories.Count; i++)
-            {
-                directories.AddRange(GetDirectories(directories[i]));
-            }
-
-            return directories;
         }
 
         private static List<string> RemoveStringsFromStringList(List<string> stringList, List<string> stringsToRemove)
@@ -319,36 +275,6 @@ namespace Scripto
             }
             return folders;
         }
-
-        private static List<string> RemoveStringIfContainsStringInList(List<string> stringList, List<string> stringsToRemove)
-        {
-            // At this point we can remove the source directories that are to be ignored.
-
-            List<string> newList = new List<string>();
-            bool foundOne = false;
-            List<string> removed = new List<string>(); // For Testing.
-
-            for (int i = 0; i < stringList.Count; i++)
-            {
-                foundOne = false;
-                for (int j = 0; j < stringsToRemove.Count; j++)
-                {
-                    if (stringList[i].Contains(stringsToRemove[j]))
-                    {
-                        foundOne = true;
-                        removed.Add( stringList[i] );
-                        break;                                                               
-                    }                                  
-                }
-                if( foundOne == false )
-                {
-                    newList.Add(stringList[i]);
-                }
-            }
-            return newList;
-        }
-
-        // here
 
         private static void CopyFiles(string sourceDir, string backUpDir, List<string> files)
         {
