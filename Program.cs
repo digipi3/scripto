@@ -20,9 +20,6 @@ namespace Scripto
     class Program
     {
         static StreamWriter Log = new StreamWriter("log.txt", false);
-#if BATCH
-        static StreamWriter Batch = new StreamWriter("batch.txt", true);
-#endif 
 
         static void Main(string[] args)
         {
