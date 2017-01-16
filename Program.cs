@@ -1,5 +1,5 @@
-﻿#define TESTING
-//#define ACTION
+﻿//#define TESTING
+#define ACTION
 
 using System;
 using System.Collections;
@@ -50,7 +50,7 @@ namespace Scripto
 
             if ( ! Directory.Exists( args[0] ) )
             {
-                LogMessage("Source directory doesn't exist");
+                LogMessage("Source directory doesn't exist " + args[0]);
                 Log.Close();
                 return;
             }
@@ -119,6 +119,8 @@ namespace Scripto
                             
             CopyFiles(sourceDir, backUpDir, paths);         
             CopyModifiedFiles(sourceDir, backUpDir, paths );
+
+            LogMessage("Done");
 
             Log.Close();
 #if BATCH
@@ -382,7 +384,7 @@ namespace Scripto
             }
 
             Log.WriteLine(DateTime.UtcNow.ToString() + "\t\t" + message);
-            //Console.WriteLine(DateTime.UtcNow.ToString() + "\t\t" + message);
+            Console.WriteLine(DateTime.UtcNow.ToString() + "\t\t" + message);
         }
     }
 }
