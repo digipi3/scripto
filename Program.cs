@@ -26,20 +26,6 @@ namespace Scripto
 
         static void Main(string[] args)
         {
-#if TESTING
-            args = new string[3];
-            args[0] = "C:\\src";
-            args[1] = "C:\\des";
-            args[2] = "C:\\ignorelist.txt";
-
-            //args[0] = "C:\\Users\\mark\\Documents\\test";
-            //args[1] = "E:\\test backup";
-
-            args[0] = "C:\\Users\\mark\\Documents\\Mark's Files"; 
-            args[1] = "E:\\Mark's Backup"; 
-            args[2] = "C:\\Users\\mark\\Documents\\Mark's Files\\ignorelist.txt";
-#endif
-
             List<string> directoriesToIgnore = null;
 
             if( CheckArguments(args) == false )
