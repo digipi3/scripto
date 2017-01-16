@@ -12,10 +12,8 @@ using System.Threading.Tasks;
 namespace Scripto
 {
     /* Important notes:
-     * 
      * Directories are dealth with in the following format:
      * C:\\Movies and not C:\\Movies\\ so the last slash will be removed.
-     * 
      */
     class Program
     {
@@ -28,6 +26,7 @@ namespace Scripto
             if( CheckArguments(args) == false )
             {
                 LogMessage("There's an issue with the arguments");
+                Log.Close();
                 return;
             }
 
@@ -40,7 +39,7 @@ namespace Scripto
 
             if ( ! Directory.Exists( args[1] ) )
             {
-                LogMessage("Backup directory doesn't exist: " + args[1].ToString() );
+                LogMessage("Backup directory doesn't exist: " + args[1] );
                 Log.Close();
                 return;
             }
@@ -65,6 +64,7 @@ namespace Scripto
                     catch (Exception ex)
                     {
                         LogMessage("Error dealing with ignore file" + ex.ToString());
+                        Log.Close();
                         return;
                     }
                 }
